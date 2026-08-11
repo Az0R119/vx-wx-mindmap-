@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>微信消息总结 · 网页版</title>
+<meta name="description" content="把 WeChatDataAnalysis 导出的 zip 拖进来，自动生成群聊思维导图。纯本地处理，不联网上传。可选接入 AI 提炼（自带 key）。">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>🧠 微信消息总结</h1>
+    <p class="sub">把 WeChatDataAnalysis 导出的 zip 拖进来 → 自动生成群聊思维导图</p>
+    <div class="tags"><span>🔒 纯本地处理</span><span>0 上传</span><span>可选 AI 提炼</span></div>
+  </header>
+
+  <!-- 顶部：下载 exe / 使用引导 -->
+  <div class="quickbar">
+    <!-- 发布后把 href 换成 GitHub Releases 的 exe 直链 -->
+    <a class="qbtn primary" id="downloadExe" href="https://github.com/Az0R119/winxin-summary/releases/latest/download/wechat-summary.exe" target="_blank" rel="noopener">💻 下载桌面版 exe</a>
+    <span class="qhint">网页版纯本地解析，exe 支持压缩图片 & 更多功能</span>
+  </div>
+
+  <!-- 引导：如何得到微信导出 zip -->
+  <details class="guide">
+    <summary>❓ 第一次用？如何得到"微信导出 zip"（3 步）</summary>
+    <ol>
+      <li><b>安装 WeChatDataAnalysis</b>（免费开源工具）——<a href="https://github.com/LifeArchiveProject/WeChatDataAnalysis/releases" target="_blank">官方下载页</a>，下载最新的 Setup.exe 安装。</li>
+      <li>打开它，选择你要分析的群聊，点「导出」→ 会生成一个 .zip 文件。</li>
+      <li>回到本页，把生成的 .zip 拖到上面方框里，就能自动出思维导图。</li>
+    </ol>
+    <div class="guide-tip">💡 隐私：zip 全程在你的浏览器本地处理，<b>不会上传到任何服务器</b>。</div>
+  </details>
+
+  <!-- 拖拽 / 选择 区 -->
+  <section id="dropzone" class="dropzone">
+    <div class="dz-icon">📦</div>
+    <p class="dz-t1">拖 zip 到这里，或 <span class="link">点击选择</span></p>
+    <p class="dz-t2">支持 WeChatDataAnalysis 导出的聊天记录 zip</p>
+    <input type="file" id="fileInput" accept=".zip" hidden>
+  </section>
+
+  <!-- 选项区 -->
+  <section class="opts" id="opts">
+    <div class="opt-row">
+      <label>主题</label>
+      <select id="themeSel">
+        <option value="dark">深色</option>
+        <option value="light">浅色</option>
+        <option value="minimal">极简</option>
+      </select>
+    </div>
+    <div class="opt-row">
+      <label><input type="checkbox" id="aiOn"> 启用 AI 提炼（3条精华/分歧/行动项）</label>
+    </div>
+    <div class="opt-row ai-row" id="aiRow">
+      <input type="password" id="apiKey" placeholder="你的 API Key（存本机浏览器，可自动记住）">
+      <select id="providerSel">
+        <option value="deepseek">DeepSeek</option>
+        <option value="qwen">通义千问</option>
+        <option value="zhipu">智谱 GLM</option>
+        <option value="moonshot">Moonshot (Kimi)</option>
+        <option value="openai">OpenAI</option>
+        <option value="custom">自定义</option>
+      </select>
+      <div class="custom-row" id="customRow" style="display:none">
+        <input type="text" id="customBase" placeholder="Base URL 如 https://api.deepseek.com">
+        <input type="text" id="customModel" placeholder="模型名 如 deepseek-chat">
+      </div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button id="genBtn" disabled>生成思维导图 🚀</button>
+    <span class="status" id="status">等待选择 zip…</span>
+  </div>
+
+  <!-- 结果区 -->
+  <section class="result" id="result"></section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

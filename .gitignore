@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 构建中间产物（保留 dist 下的 exe，忽略其他）
+build/
+*.spec
+
+# 临时/测试
+*.html.bak
+_temp/
+*_free版.html
+*_ai版.html
+_debug*
+
+# 系统
+Thumbs.db
+.DS_Store
