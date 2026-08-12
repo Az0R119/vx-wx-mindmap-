@@ -120,7 +120,7 @@ class WeChatSummaryApp:
                   foreground="#888", wraplength=600, justify="left").pack(anchor="w", padx=10)
 
         # 说明
-        ttk.Label(f3, text="选内置的 AI 只需填 key；也可自己改 URL+模型接任意 OpenAI 兼容服务，甚至本地 Ollama。key 只在本机用，不进 HTML/上传。",
+        ttk.Label(f3, text="已内置主流 AI（DeepSeek/通义/智谱/Kimi/OpenAI/豆包/本地Ollama）。也可选\"自定义\"，直接改上面的 Base URL + 模型 + Key，接任意OpenAI兼容服务或你自己的中转站。key 只在本机用，不进 HTML/上传。",
                   foreground="#888", wraplength=600, justify="left").pack(anchor="w", padx=10, pady=(2,6))
 
         # —— 视觉识别（独立视觉模型，默认关省 token）——

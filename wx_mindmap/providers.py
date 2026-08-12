@@ -64,6 +64,24 @@ PROVIDERS = [
         "vision": False,
         "desc": "本地免费模型，key 随便填（如 ollama），数据不出本机。",
     },
+    {
+        "id": "doubao",
+        "name": "豆包 (火山方舟)",
+        "base_url": "https://ark.cn-beijing.volces.com/api/compatible",
+        "model": "doubao-seed-1-6-250615",
+        "key_url": "https://console.volcengine.com/ark",
+        "vision": True,
+        "desc": "字节豆包（火山方舟），支持视觉，性价比高。key 形如 ark-xxxx。",
+    },
+    {
+        "id": "custom",
+        "name": "自定义 (任意 OpenAI 兼容)",
+        "base_url": "",
+        "model": "",
+        "key_url": "",
+        "vision": True,
+        "desc": "自己填 Base URL + 模型 + Key，可接任意 OpenAI 兼容服务（含本地 Ollama、中转站等）。",
+    },
 ]
 
 # 默认第一个（DeepSeek）
