@@ -165,7 +165,7 @@ def enrich_projects_reviews(projects: List[Dict], api_key: str,
     )
     messages = [{"role": "user", "content": prompt}]
     try:
-        raw = _call_chat(messages, api_key, base, model, timeout=120)
+        raw = _call_chat(messages, api_key, base, model, timeout=30)
     except Exception:
         return {}
     # 解析 JSON（容错：截取 [ ] 之间的部分）
@@ -265,7 +265,7 @@ def generate_section_plan(transcript: List[str], api_key: str,
     )
     messages = [{"role": "user", "content": prompt}]
     try:
-        raw = _call_chat(messages, api_key, base, model, timeout=120)
+        raw = _call_chat(messages, api_key, base, model, timeout=30)
         return _plan_parse(raw)
     except Exception:
         return {}

@@ -72,15 +72,26 @@ def read_chat(zf: zipfile.ZipFile, meta_path: str, page_paths: List[str]) -> WxC
 
 
 def _parse_page(chat: WxChat, data: str) -> None:
-    """解析单个 page-*.js 里的消息，追加进 chat.messages。"""
-    # 取出 const html = "..." 的字符串原文，再用 JSON 语义解码（避免 mojibake）
+    """解析消息，追加进 chat.messages。
+    兼容两种导出格式：旧版 page-*.js(`const html=...` 包裹) 与新版 messages.html(直接就是 HTML)。
+    """
+    # 取出 const html = "..." 的字符串原文（旧格式）；新版 messages.html 直接是 HTML，走兜底
     m = re.search(r'const html = "(.*?)";', data, re.S)
-    if not m:
-        return
-    try:
-        page_html = json.loads('"' + m.group(1) + '"')
-    except Exception:
-        page_html = m.group(1)  # 兜底：原样用
+    if m:
+        try:
+            page_html = json.loads('"' + m.group(1) + '"')
+        except Exception:
+            page_html = m.group(1)  # 兜底：原样用
+    else:
+        # 新版 messages.html：body 里就是完整 HTML，直接解析
+        page_html = data
+        # 去掉 <body>...</body> 之外的 head/style/script，保留消息主体
+        bm = re.search(r'<body[^>]*>(.*?)</body>', page_html, re.S)
+        if bm:
+            page_html = bm.group(1)
+        # 去掉残留的 <script>...</script> / <style>...</style>（可能混在 body 里）
+        page_html = re.sub(r'<script[^>]*>.*?</script>', '', page_html, flags=re.S)
+        page_html = re.sub(r'<style[^>]*>.*?</style>', '', page_html, flags=re.S)
 
     # 按消息 div 切分（lookahead，保留分隔符）
     blocks = re.split(
@@ -144,6 +155,9 @@ def load_export(zip_path: str, max_chats: Optional[int] = None) -> List[WxChat]:
         chats_map.setdefault(conv, {"meta": None, "pages": []})
         if n.endswith("meta.json"):
             chats_map[conv]["meta"] = n
+        elif n.endswith("messages.html"):
+            # 新版导出：单文件 messages.html 含全部消息
+            chats_map[conv]["pages"].append(n)
         elif "pages/" in n and n.endswith(".js"):
             chats_map[conv]["pages"].append(n)
 
