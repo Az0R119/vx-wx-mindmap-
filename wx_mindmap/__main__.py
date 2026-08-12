@@ -166,6 +166,14 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
             from .ai import ai_generate_structure, generate_section_plan
             tr = transcripts(chat)
             user_hint = (opts.get("user_hint") or "").strip()
+            # 社区/个人改进提示：L2 个人偏好 + 社区反馈改进点（一个反馈惠及所有人）
+            try:
+                from .feedback import build_community_hint
+                _cm = build_community_hint()
+                if _cm:
+                    user_hint = (user_hint + "；" + _cm).strip("；")
+            except Exception:
+                pass
             # Step1：让 AI 先判定这个群该有哪些板块（专属板块方案；家庭群出家庭板块，不再硬编码 IT）
             # 有无用户提示都走一遍——没提示时 AI 按聊天内容自行判断群类型
             plan = {}

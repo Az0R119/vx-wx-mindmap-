@@ -276,6 +276,26 @@ class WeChatSummaryApp:
         self.status.set(f"完成：{os.path.basename(res['out_file'])}")
         if messagebox.askyesno("成功", msg):
             webbrowser.open("file:///" + res["out_file"].replace("\\", "/"))
+        # 反馈闭环（可选，不影响主流程）
+        try:
+            self._ask_feedback()
+        except Exception:
+            pass
+
+    def _ask_feedback(self):
+        """出图后请用户点个反馈：👍/👎 + 一句原因。匿名上传（不含聊天内容）。"""
+        from .feedback import submit_feedback
+        import tkinter.simpledialog as sd
+        group = self.user_hint_var.get().strip()
+        mood = messagebox.askyesno("反馈", "这个总结满意吗？\n（选\"是\"=满意 👍，选\"否\"=不太满意 👎）\n反馈是匿名的，只含你的选择+原因，不含聊天内容。")
+        try:
+            reason = sd.askstring("反馈", "一句话说说哪里好 / 哪里不好？（可留空直接确定）", parent=self.root, initialvalue="")
+        except Exception:
+            reason = ""
+        submit_feedback(mood="like" if mood else "dislike",
+                        reason=reason or "",
+                        group_type=group, version="0.2.0")
+        self.status.set("已记录你的反馈，谢谢你让工具更好用 🙏")
 
     def _fail(self, e):
         self.busy = False

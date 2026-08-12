@@ -181,7 +181,49 @@ async function generate() {
   const html = renderMindmap(chatData, stats, projects, wc, aiNote, theme);
   renderToPage(html);
   setStatus("✅ 完成，以下是思维导图");
+  // 出图后显示反馈框（社区闭环）
+  showFeedback();
 }
+
+/* ---------- 反馈闭环 ---------- */
+const FBBACKEND = "https://wxmindmap.1464768276.workers.dev";
+let fbMood = "";
+function showFeedback() {
+  const box = $("feedbackBox");
+  if (box) box.style.display = "block";
+  fbMood = "";
+  $("fbReason").value = "";
+  $("fbOk").style.display = "none";
+}
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".fb-btn");
+  if (!btn) return;
+  fbMood = btn.dataset.mood;
+  document.querySelectorAll(".fb-btn").forEach(b => b.style.borderColor = b === btn ? "#a78bfa" : "#2a3a5a");
+});
+$("fbSend").addEventListener("click", async () => {
+  const reason = $("fbReason").value.trim();
+  if (!fbMood) { $("fbOk").textContent = "请先选 👍 或 👎"; $("fbOk").style.display = "block"; return; }
+  // localStorage 记偏好（L2）
+  try {
+    const prefs = JSON.parse(localStorage.getItem("wm_prefs") || "{}");
+    const hintEl = document.getElementById("userHint");
+    prefs.lastGroup = (hintEl && hintEl.value) || prefs.lastGroup || "";
+    localStorage.setItem("wm_prefs", JSON.stringify(prefs));
+  } catch(e) {}
+  // 匿名上传（不含聊天内容）
+  try {
+    await fetch(FBBACKEND.replace(/\/+$/, "") + "/feedback", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mood: fbMood, reason: reason, groupType: "", version: "0.2.0" })
+    });
+    $("fbOk").textContent = "🙏 谢谢你让工具更好用！";
+  } catch(e) {
+    $("fbOk").textContent = "（反馈发送失败，不影响使用）";
+  }
+  $("fbOk").style.display = "block";
+  setTimeout(() => { const box = $("feedbackBox"); if (box) box.style.display = "none"; }, 2500);
+});
 
 function renderToPage(html) {
   $("result").innerHTML = `<iframe sandbox="allow-same-origin" src="data:text/html;charset=utf-8,${encodeURIComponent(html)}"></iframe>`;
