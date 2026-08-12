@@ -7,6 +7,8 @@ const PROVIDERS = {
   zhipu:    { base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", vision: true },
   moonshot: { base: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k", vision: false },
   openai:   { base: "https://api.openai.com/v1", model: "gpt-4o-mini", vision: true },
+  doubao:   { base: "https://ark.cn-beijing.volces.com/api/compatible", model: "doubao-seed-2-1-pro-260628", vision: true },
+  ollama:   { base: "http://localhost:11434/v1", model: "qwen2.5:7b", vision: false },
 };
 
 const $ = id => document.getElementById(id);
@@ -37,8 +39,8 @@ async function handleFile(file) {
 function parseExport(unz) {
   const msgs = [];
   const fileNames = Object.keys(unz);
-  // 找 conversations 下的 page-*.js
-  const pages = fileNames.filter(n => /conversations\/.*\/pages\/page-[\d]+\.js/.test(n));
+  // 找 conversations 下的 page-*.js（旧格式）或 messages.html（新版单文件）
+  const pages = fileNames.filter(n => /conversations\/.*\/(pages\/page-[\d]+\.js|messages\.html)/.test(n));
   const metaFiles = fileNames.filter(n => /conversations\/.*\/meta\.json/.test(n));
   let chatName = "微信群";
   if (metaFiles.length) {
