@@ -168,19 +168,50 @@ async function generate() {
   const projects = detectProjects(chatData);
   const wc = wordFreq(chatData);
 
-  let aiNote = "";
+  let aiSections = "";   // AI 动态板块渲染结果(HTML)
+  let aiEssence = "";
   if (aiOn) {
     if (!key || !base) { setStatus("启用 AI 需填 key", true); return; }
-    setStatus("AI 提炼中…");
+    const userHint = (($("userHint")||{}).value||"").trim();
     try {
+      // ---------- Step1: 让 AI 判定这个群该有哪些板块(专属板块方案) ----------
+      setStatus("AI 判断群类型…");
+      let plan = { sections: [] };
+      try {
+        const sample = chatData.slice(-80).map(x=>x.sender+": "+x.body.slice(0,50)).join("\n");
+        const planPrompt = "请判断这个微信群属于什么类型(家庭/同学/工作/兴趣/项目/学习/其他)，列出最适合本群的4~6个板块方案，严格JSON返回：{「群类型」:str, 「sections」:[{icon,title,focus}] }。"
+          + (userHint ? " 用户提示：这是【"+userHint+"】群，板块请优先贴这个方向。" : " 用户未指定类型，请根据聊天内容自行判断。")
+          + "\n聊天记录片段：\n"+sample;
+        const planRaw = await callAI([{role:"user",content:planPrompt}], key, base, model);
+        const pm = planRaw.match(/\{[^]*\}/);
+        if (pm) { try { plan = JSON.parse(pm[0]) || {sections:[]}; } catch(e){} }
+      } catch(e) { plan = { sections: [] }; }
+
+      // ---------- Step2: 用板块方案正式出图 ----------
+      setStatus("AI 生成思维导图…");
       const tr = chatData.slice(0,300).map(x=>x.sender+": "+x.body.slice(0,60)).join("\n");
-      const prompt = "这是某微信群聊天记录。请提炼3条精华/结论，每条一句话。尽量口语化。\n"+tr;
-      const out = await callAI([{role:"user",content:prompt}], key, base, model);
-      aiNote = out.split("\n").filter(Boolean).map(s=>`<li class="pt imp-lo"><span class="lem">✦</span><span class="keg">${esc(s)}</span></li>`).join("");
-    } catch(e){ aiNote = `<div class="note">AI 失败：${esc(e.message)}（已用本地规则版）</div>`; }
+      const sectionsList = (plan.sections||[]).map(s=>`${s.icon||"•"} ${s.title||""}${s.focus?"（重点："+s.focus+"）":""}`).join("\n");
+      const structPrompt = "你是微信群聊总结助手。这是聊天记录，请按下方要求返回严格JSON："
+        + '{"title":"一句话概括","sections":[{"icon":"emoji","title":"板块名","subs":[{"title":"小标题","points":[{"text":"要点","level":1("红")/2("橙")/3("蓝"),"tag":"中文短词"}]}]}]}'
+        + " 板块要严格按下面清单来(4~6个，不要自己加)，每条要点配贴合内容的emoji，内容要充实不编造。\n"
+        + (sectionsList ? "【板块清单】\n"+sectionsList+"\n" : "")
+        + (userHint ? "【用户方向】"+userHint+"\n" : "")
+        + "聊天记录：\n"+tr;
+      const out = await callAI([{role:"user",content:structPrompt}], key, base, model);
+      const sm = out.match(/\{[^]*\}/);
+      if (sm) {
+        try {
+          const struct = JSON.parse(sm[0]);
+          aiSections = renderAiSections(struct.sections||[]);
+        } catch(e) {}
+      }
+      // 提炼3条精华(额外)
+      const essPrompt = "这段群聊，提炼3条最值得关注的结论，每条一句话，编号1.2.3.。\n"+tr;
+      try { aiEssence = await callAI([{role:"user",content:essPrompt}], key, base, model); } catch(e){}
+    } catch(e){ aiEssence = "AI 失败："+e.message+"（已用本地规则版）"; }
   }
 
-  const html = renderMindmap(chatData, stats, projects, wc, aiNote, theme);
+  const html = renderMindmap(chatData, stats, projects, wc, aiSections, aiEssence, theme);
   renderToPage(html);
   setStatus("✅ 完成，以下是思维导图");
   // 出图后显示反馈框（社区闭环）
@@ -231,6 +262,28 @@ function renderToPage(html) {
   $("result").innerHTML = `<iframe sandbox="allow-same-origin" src="data:text/html;charset=utf-8,${encodeURIComponent(html)}"></iframe>`;
 }
 
+/* 把 AI 返回的动态板块(sections)渲染成可折叠树状 HTML。
+   sections: [{icon,title,subs:[{title,points:[{text,level,tag}]}]}] */
+function renderAiSections(sections) {
+  if (!sections || !sections.length) return "";
+  const levelColor = {1:"#ef4444",2:"#f59e0b",3:"#3b82f6"};
+  return sections.map(s => {
+    const icon = s.icon || "•";
+    const title = esc(s.title || "板块");
+    const subs = (s.subs||[]).map(sb => {
+      const subTitle = sb.title ? `<div class="sub-h">${esc(sb.title)}</div>` : "";
+      const pts = (sb.points||[]).filter(p=>p && p.text).map(p => {
+        const lv = p.level || 3;
+        const col = levelColor[lv] || "#3b82f6";
+        const tag = p.tag ? `<span class="tagx" style="border-color:${col};color:${col}">${esc(p.tag)}</span>` : "";
+        return `<div class="pt" style="border-left-color:${col}"><span class="lem"></span>${tag}<span class="keg">${esc(p.text)}</span></div>`;
+      }).join("");
+      return `<div class="sub-b">${subTitle}${pts}</div>`;
+    }).join("");
+    return `<div class="ai-sec"><div class="ai-sec-h"><span class="ai-sec-i">${icon}</span><b>${title}</b></div>${subs}</div>`;
+  }).join("");
+}
+
 function setStatus(msg, err) { $("status").textContent = msg; $("status").style.color = err?"#fda4af":"#9fb0d8"; }
 
 function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -274,7 +327,7 @@ loadPrefs();
 $("customRow").style.display = ($("providerSel").value === "custom") ? "flex" : "none";
 
 /* ---------- 渲染思维导图 HTML ---------- */
-function renderMindmap(msgs, stats, projects, wc, aiNote, theme) {
+function renderMindmap(msgs, stats, projects, wc, aiSections, aiEssence, theme) {
   const g = {
     dark: { bg:"#0a0e1a", card:"#101629", line:"#2a3a5a", text:"#dbe4ff", muted:"#9fb0d8", hi:"#a78bfa", med:"#22d3ee" },
     light: { bg:"#f5f7ff", card:"#ffffff", line:"#e3e8f5", text:"#1f2937", muted:"#6b7280", hi:"#7c3aed", med:"#2563eb" },
@@ -304,6 +357,11 @@ function renderMindmap(msgs, stats, projects, wc, aiNote, theme) {
     .pd { font-size:12px; color:${C.muted}; margin-top:4px; }
     .cloud { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px 12px; padding:14px; min-height:150px; }
     .cv { font-weight:700; }
+    .ai-sec { margin:8px 0; }
+    .ai-sec-h { font-size:15px; display:flex; align-items:center; gap:6px; margin-bottom:4px; color:${C.text}; }
+    .ai-sec-i { font-size:16px; }
+    .sub-h { font-weight:600; color:${C.hi}; margin:8px 0 2px; font-size:14px; }
+    .tagx { display:inline-block; font-size:10px; padding:0 6px; border:1px solid; border-radius:4px; margin-right:6px; font-weight:600; }
     ul { list-style:none; } .note{color:${C.muted};font-size:12px;padding:6px;}
   `;
 
@@ -335,7 +393,9 @@ function renderMindmap(msgs, stats, projects, wc, aiNote, theme) {
 
   <details class="section" open><summary class="sec-h">🚀 群友项目 <span class="ar">▸</span></summary><div class="sec-b"><div class="pgrid">${projCards||"<div class='note'>未识别到项目（没带链接的工具？）</div>"}</div></div></details>
 
-  ${aiNote?`<details class="section" open><summary class="sec-h">🤖 AI 提炼 <span class="ar">▸</span></summary><div class="sec-b"><ul>${aiNote}</ul></div></details>`:""}
+  ${aiSections?`<details class="section" open><summary class="sec-h">🧠 AI 智能板块 <span class="ar">▸</span></summary><div class="sec-b">${aiSections}</div></details>`:""}
+
+  ${aiEssence?`<details class="section" open><summary class="sec-h">🤖 AI 提炼 <span class="ar">▸</span></summary><div class="sec-b"><ul>${aiEssence.split("\n").filter(Boolean).map(s=>`<li><div class="pt"><span class="lem">✦</span><span class="keg">${esc(s.replace(/^\d+\./,"").trim())}</span></div></li>`).join("")}</ul></div></details>`:""}
 
   <details class="section" open><summary class="sec-h">🔖 群聊热门词 <span class="ar">▸</span></summary><div class="sec-b"><ul>${topics}</ul></div></details>
 

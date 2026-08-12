@@ -51,9 +51,11 @@
       </select>
     </div>
     <div class="opt-row">
-      <label><input type="checkbox" id="aiOn"> 启用 AI 提炼（3条精华/分歧/行动项）</label>
+      <label><input type="checkbox" id="aiOn"> 启用 AI 提炼（动态板块 + 3条精华）</label>
     </div>
     <div class="opt-row ai-row" id="aiRow">
+      <label class="hint"><b>群类型/关注点</b>（可选）</label>
+      <input type="text" id="userHint" placeholder="如『家庭群，关注孩子学习和老人健康』——AI 按此定板块；留空则按聊天内容自动判断">
       <input type="password" id="apiKey" placeholder="你的 API Key（存本机浏览器，可自动记住）">
       <select id="providerSel">
         <option value="deepseek">DeepSeek</option>
