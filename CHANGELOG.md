@@ -2,6 +2,19 @@
 
 所有版本的改动记录。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.2.4] - 2026-08-12
+
+### 新增
+- **记住配置（exe）**：API key / 模型供应商 / 主题 / 群类型 / 视觉设置自动记住，下次打开不用重填（网页版本就用 localStorage 记住）。
+
+### 新增（网页版）
+- **AI 动态板块**：网页版填「群类型/关注点」→ Step1 AI 判定板块 → 家庭群就出家庭板块（与 exe 一致）。
+- **AI 供应商扩充**：网页版新增豆包、本地 Ollama，与 exe 对齐。
+
+### 修复
+- **豆包 base_url**：从 `/api/compatible`（404）修正为正确的 `/api/v3`。exe 与网页版同步修正。
+- **网页版兼容新版导出格式**：支持新版 WeChatDataAnalysis 的 `messages.html` 单文件导出。
+
 ## [0.2.3] - 2026-08-12
 
 ### 修复
