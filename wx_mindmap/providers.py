@@ -67,11 +67,11 @@ PROVIDERS = [
     {
         "id": "doubao",
         "name": "豆包 (火山方舟)",
-        "base_url": "https://ark.cn-beijing.volces.com/api/compatible",
+        "base_url": "https://ark.cn-beijing.volces.com/api/v3",
         "model": "doubao-seed-2-1-pro-260628",
         "key_url": "https://console.volcengine.com/ark",
         "vision": True,
-        "desc": "字节豆包（火山方舟），支持视觉，性价比高。key 形如 ark-xxxx。",
+        "desc": "字节豆包（火山方舟），支持视觉。key 形如 ark-xxxx。注意：模型需在火山方舟控制台开通，且可能有限额(429)。",
     },
     {
         "id": "custom",

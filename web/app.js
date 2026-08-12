@@ -7,7 +7,7 @@ const PROVIDERS = {
   zhipu:    { base: "https://open.bigmodel.cn/api/paas/v4", model: "glm-4-flash", vision: true },
   moonshot: { base: "https://api.moonshot.cn/v1", model: "moonshot-v1-8k", vision: false },
   openai:   { base: "https://api.openai.com/v1", model: "gpt-4o-mini", vision: true },
-  doubao:   { base: "https://ark.cn-beijing.volces.com/api/compatible", model: "doubao-seed-2-1-pro-260628", vision: true },
+  doubao:   { base: "https://ark.cn-beijing.volces.com/api/v3", model: "doubao-seed-2-1-pro-260628", vision: true },
   ollama:   { base: "http://localhost:11434/v1", model: "qwen2.5:7b", vision: false },
 };
 
