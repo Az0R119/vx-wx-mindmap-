@@ -417,6 +417,7 @@ async function askAI(){
         '<button id="wmbtn" class="qa-btn" onclick="askAI()">提问 🚀</button>'
         '<div id="wma" class="qa-ans"></div>'
         '<script>' + jscode + '</scr' + 'ipt>'
+        '</div>'
     )
 
 

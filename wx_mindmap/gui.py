@@ -111,6 +111,14 @@ class WeChatSummaryApp:
         self.conn_lbl = ttk.Label(f3, text="", foreground="#888")
         self.conn_lbl.pack(anchor="w", padx=10)
 
+        # 群类型/关注点（可填可不填 → 决定 AI 板块方向）
+        hint_row = ttk.Frame(f3); hint_row.pack(fill="x", padx=10, pady=(3,0))
+        ttk.Label(hint_row, text="群类型/关注点:").pack(side="left")
+        self.user_hint_var = tk.StringVar()
+        ttk.Entry(hint_row, textvariable=self.user_hint_var, width=38).pack(side="left", padx=(6,0))
+        ttk.Label(f3, text="可选。如『家庭群，关注孩子学习和老人健康』——让 AI 据此定板块；留空则 AI 按聊天内容自己判断。",
+                  foreground="#888", wraplength=600, justify="left").pack(anchor="w", padx=10)
+
         # 说明
         ttk.Label(f3, text="选内置的 AI 只需填 key；也可自己改 URL+模型接任意 OpenAI 兼容服务，甚至本地 Ollama。key 只在本机用，不进 HTML/上传。",
                   foreground="#888", wraplength=600, justify="left").pack(anchor="w", padx=10, pady=(2,6))
@@ -251,6 +259,7 @@ class WeChatSummaryApp:
                 vision_key=self.vision_key_var.get().strip() or "",
                 vision_base=self.vision_base_var.get().strip() or "",
                 vision_model=self.vision_model_var.get().strip() or "",
+                user_hint=self.user_hint_var.get().strip(),
             )
             self.root.after(0, lambda: self._done(res))
         except Exception as e:

@@ -42,7 +42,7 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
                 theme="dark", ai_modes=None,
                 api_key="", api_base="https://api.deepseek.com", model="deepseek-chat",
                 vision_key="", vision_base="", vision_model="", describe_images=False,
-                max_vision=8) -> dict:
+                max_vision=8, user_hint="") -> dict:
     """高层流水线：zip → (可选压缩) → 解析 → 规则 → (可选 文字AI) → (可选 视觉AI) → 出图."""
     import os as _os
     import shutil as _shutil
@@ -84,6 +84,7 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
         "wordcloud": word_cloud(chat),
         "ai": {},
         "theme": theme,
+        "user_hint": user_hint or "",
     }
 
     # —— 可选 AI 文字提炼 ——
@@ -162,12 +163,24 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
     ai_struct = None
     if api_key:
         try:
-            from .ai import ai_generate_structure
+            from .ai import ai_generate_structure, generate_section_plan
             tr = transcripts(chat)
+            user_hint = (opts.get("user_hint") or "").strip()
+            # Step1：让 AI 先判定这个群该有哪些板块（专属板块方案；家庭群出家庭板块，不再硬编码 IT）
+            # 有无用户提示都走一遍——没提示时 AI 按聊天内容自行判断群类型
+            plan = {}
+            from .ai import generate_section_plan as _gsp
+            try:
+                plan = _gsp(tr, api_key, base=api_base, model=model, user_hint=user_hint)
+            except Exception:
+                plan = {}
+            # Step2/3：板块方案 + 用户输入 + 原风格注入，正式出图
             ai_struct = ai_generate_structure(tr, api_key, base=api_base, model=model,
-                                              known_projects=opts.get("projects"))
+                                              known_projects=opts.get("projects"),
+                                              user_hint=user_hint, section_plan=plan)
             if ai_struct and ai_struct.get("sections"):
-                warnings.append(f"✅ AI 版：AI 生成 {len(ai_struct['sections'])} 个板块")
+                warnings.append(f"✅ AI 版：AI 生成 {len(ai_struct['sections'])} 个板块"
+                                + (f"（群类型：{plan.get('群类型','')}）" if plan and plan.get("群类型") else ""))
             else:
                 warnings.append("⚠️ AI 未返回有效板块（已退回免费版）。请检查 key / 模型 / AI 返回格式")
         except Exception as e:

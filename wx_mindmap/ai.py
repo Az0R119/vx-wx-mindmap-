@@ -188,44 +188,92 @@ AI_PAGE_STYLE = """生成一个深色科技风的微信群聊「思维导图」�
 
 顶部有四个数据小徽章：📝 条消息 · 👥 位群友 · 📅 天跨度 · 🚀 项目。
 
-页面板块（注意：🚀 群友项目摆在整个导图最上面，最醒目）：
-  🚀 群友做的项目（第一块，最靠上）
-  🤖 AI·计算机·科技
-  🔧 问题 & 解决方案
-  💡 群友的奇思妙想
-  👥 活跃群友画像
-  📊 数据洞察
+页面板块（板块清单由 AI 先行判定 —— 必须贴合本群实际内容，不要再套用固定的 IT 话题）：
+{SECTION_PLAN}
 
-视觉/交互亮点：
-- 配色分级：每块一个主题色（紫、青、绿、橙、红、蓝），配图标和渐变文字标题
+视觉/交互亮点（以下为本工具的固定风格参考，务必遵守）：
+- 配色分级：每个板块一个主题色（紫、青、绿、橙、红、蓝），配图标和渐变文字标题
 - 思维导图树状结构：子节点用竖线+横线连接
-- 智能标签：每个节点带彩色小标签（项目/人物/技术/想法/问题/方案/金融/AI）
+- 智能标签：每个节点带彩色小标签（贴合该节点内容，用中文短词）
 - 重要程度仅用颜色区分：🔴红框=重要，🟠橙框=中等，🔵蓝框=常规（不要任何中文"重要/中等"字样）
 - 评论区还原：项目卡片下面带圆形头像的群友原话评论
 - 可折叠：点标题栏展开/收起（▸ 旋转）
 
-【表情要求】每条要点配一个与之内容高度相关的 emoji（讲游戏就🎮、讲钱就💰、讲模型就🤖、讲想法就💡、讲问题就⚠️…），禁止所有要点用同一个表情。
+【表情要求】每条要点配一个与之内容高度相关的 emoji（讲游戏就🎮、讲钱就💰、讲健康就💊、讲孩子就🧒、讲买菜的🥬…），禁止所有要点用同一个表情。
 
-【项目要求】每个项目要给出：作者、3-6 条"饱受好评的理由"（每条用 <理由关键词> 加粗 + 简短说明）、2-3 条评论区群友原话好评。
+【项目要求】若本群有项目/作品/工具分享，每个要给出：作者、3-6 条"饱受好评的理由"、2-3 条群友原话好评；若本群不是项目为主，项目板块自动改为"本群作品/亮点"。
 
-【活跃群友画像要求】"活跃群友画像"板块必须充实：按贡献度分"核心贡献者"和"积极参与者"两组，每个成员给出：头像 emoji、人物标签（如"技术大佬/段子手/投资专家/项目作者"）、以及一句描述 TA 是谁/做了什么（对标免费版的画像深度，不能只罗列名字）。
+内容要充实、不空屏、不编造，严格按给定的板块方案来，不要自己加回 IT 话题。"""
 
-内容要充实、不空屏、不编造。"""
+# Step1 时用：让 AI 判定"这个群"该有哪些板块（不再硬编码 IT 话题）
+SECTION_PLAN_PROMPT = """请先判断这个微信群属于什么类型（家庭/同学/工作/兴趣/项目/学习/其他），
+然后列出最适合本群的 4~6 个"板块方案"，用 JSON 返回，结构：
+{{
+  "群类型": "一句话判断这个群属于哪种",
+  "sections": [
+    {{"icon":"板块emoji","title":"板块标题","focus":"这个板块重点关注什么","accent_theme":"紫/青/绿/橙/红/蓝之一"}}
+  ]
+}}
+板块要贴合这个群真实在聊的内容。例如家庭群可给"家庭动态/孩子成长/老人健康/生活琐事"，项目群可给"群友作品/技术讨论/遇到的问题"。
+只返回 JSON，不要多余文字。"""
+
+
+def _plan_parse(raw: str) -> Dict:
+    """解析 Step1 的板块方案 JSON（容错）。"""
+    import json as _json, re as _re
+    if not raw or not raw.strip():
+        return {}
+    text = raw.strip()
+    # 去掉 ```json 围栏
+    text = _re.sub(r"```(?:json)?", "", text).strip()
+    try:
+        return _json.loads(text) or {}
+    except Exception:
+        m = _re.search(r"\{.*\}", text, _re.S)
+        if m:
+            try:
+                return _json.loads(m.group(0)) or {}
+            except Exception:
+                return {}
+    return {}
+
+
+def generate_section_plan(transcript: List[str], api_key: str,
+                          base: str = DEFAULT_BASE, model: str = DEFAULT_MODEL,
+                          user_hint: str = "") -> Dict:
+    """Step1：让 AI 先判定"这个群"该有哪些板块（专属板块方案）。
+    user_hint：可选，用户在 GUI 填的'群类型/关注点'；不填则 AI 纯看内容。
+    返回 { "群类型":str, "sections":[{"icon","title","focus","accent_theme"}] }；失败返回 {}。
+    """
+    if not api_key:
+        return {}
+    lines = transcript
+    if len(lines) > 120:
+        lines = lines[:120]
+    hint = f"\n用户提示：这是【{user_hint}】群，板块请优先贴这个方向。\n" if user_hint else "\n（用户未指定类型，请根据聊天内容自行判断这个群属于哪种）\n"
+    sample = "\n".join((x if len(x) < 60 else x[:60]) for x in lines[-80:])
+    prompt = (
+        SECTION_PLAN_PROMPT + hint
+        + "以下是该群的聊天记录片段（可从中判断群类型和话题）：\n" + sample
+    )
+    messages = [{"role": "user", "content": prompt}]
+    try:
+        raw = _call_chat(messages, api_key, base, model, timeout=120)
+        return _plan_parse(raw)
+    except Exception:
+        return {}
 
 
 def ai_generate_structure(transcript: List[str], api_key: str,
                           base: str = DEFAULT_BASE, model: str = DEFAULT_MODEL,
-                          known_projects: List[Dict] = None) -> Dict:
+                          known_projects: List[Dict] = None,
+                          user_hint: str = "", section_plan: Dict = None) -> Dict:
     """
-    AI 版核心：让 AI 读消息，返回一份完整的板块结构（挣脱死规则，prompt 驱动）。
-    known_projects：免费版规则抓到的项目/工具（带链接），AI 必须把它们全部列入项目板块，
-    确保 AI 版项目覆盖面 ≥ 免费版（取长补短，不遗漏）。
-    返回 {
-      "title": 一句话概括这群在聊什么,
-      "sections": [ { "icon", "title", "points": [{"text","take"}] } ],
-      "projects": [ {"name","author","why_good","comments"[...]} ],
-    }
-    任何失败返回 {}（上层降级为免费规则版，不崩）。
+    AI 版核心：让 AI 读消息，返回一份完整的板块结构。
+    known_projects：免费版规则抓到的项目/工具，AI 必须全部列入项目板块（取长补短不遗漏）。
+    user_hint：可选，用户在 GUI 填的"群类型/关注点"。
+    section_plan：可选，Step1 generate_section_plan() 返回的专属板块方案；若不传则回退到默认逻辑。
+    返回 { "title", "sections", "projects" }；任何失败返回 {}（上层降级免费版，不崩）。
     """
     if not api_key:
         return {}
@@ -251,16 +299,36 @@ def ai_generate_structure(transcript: List[str], api_key: str,
             lines_list.append("- " + nm + " (作者: " + au + ") " + ur)
         known_block = "【已知工具清单（必须全部列入 projects，一个都不能漏）】\n" + "\n".join(lines_list) + "\n\n"
 
+    # 板块方案：优先用 Step1 的 section_plan，否则默认（保持向后兼容）
+    if section_plan and section_plan.get("sections"):
+        plan_lines = []
+        for s in section_plan["sections"]:
+            t = str(s.get("title", ""))
+            if not t:
+                continue
+            ic = str(s.get("icon", "•"))
+            f = str(s.get("focus", ""))
+            plan_lines.append(f"  {ic} {t}" + (f"（重点：{f}）" if f else ""))
+        section_plan_block = "\n".join(plan_lines) if plan_lines else "  （用户未指定，由你根据聊天内容判定板块）"
+        if section_plan_block != "  （用户未指定，由你根据聊天内容判定板块）":
+            section_plan_block += "\n  👥 活跃群友"
+    else:
+        section_plan_block = "  根据本群实际内容，由你判定 5~6 个最贴切的板块"
+
+    user_hint_block = ""
+    if user_hint:
+        user_hint_block = f"用户提示：这是【{user_hint}】。板块方案请优先贴合这个方向。\n\n"
+
     prompt = (
         "以下是某微信群的聊天记录。请按给定风格产出思维导图内容。\n"
-        + AI_PAGE_STYLE + "\n\n"
+        + user_hint_block
+        + AI_PAGE_STYLE.replace("{SECTION_PLAN}", section_plan_block) + "\n\n"
         "严格返回 JSON，结构如下（不要多余文字）：\n"
         + schema_example + "\n"
-        "【必读】sections 仍 6 个，但第一个必须是🚀群友做的项目/工具(最靠上)；其余5个按序。"
+        "【必读】板块要严格按上面给的板块清单来，数量 4~6 个，不要自己加别的；"
         "每条 points 必须带 emoji 字段(与该要点内容相关,不可全同)；points.level 用 1(红)/2(橙)/3(蓝)；"
-        "points.tag 用：项目/人物/技术/想法/问题/方案/金融/AI 之一。"
-        "projects[] 必须完整覆盖下方【已知工具清单】里的每一个，一个都不能漏；"
-        "对每个工具给出 author、3-6 条饱受好评理由(reasons)、2-3 条群友原话好评(comments)。"
+        "points.tag 用贴合该节点的中文短词。"
+        "若本群有项目/作品，projects[] 必须完整覆盖下方【已知工具清单】，一个都不能漏，给每个 3-6 条好评理由 + 2-3 条群友评论。"
         "若已知工具清单为空，则从聊天记录里自己找项目。\n\n"
         + known_block
         + "聊天记录：\n" + "\n".join(lines)
