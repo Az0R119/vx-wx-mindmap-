@@ -104,6 +104,13 @@ def _parse_items(raw: str) -> List[str]:
 
 
 # ---------------------------------------------------------------- 视觉描述
+def _mimetype(path: str) -> str:
+    """按扩展名返回图片 MIME，供 base64 视觉请求用（默认 image/jpeg）。"""
+    ext = str(path).lower().rsplit(".", 1)[-1] if "." in str(path) else ""
+    return {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "gif": "image/gif", "webp": "image/webp", "bmp": "image/bmp"}.get(ext, "image/jpeg")
+
+
 def describe_image(image_path: str, api_key: str,
                    base: str, model: str,
                    question: str = "简要描述这张图的内容，1-2 句话。") -> str:
@@ -119,7 +126,7 @@ def describe_image(image_path: str, api_key: str,
         "role": "user",
         "content": [
             {"type": "text", "text": question},
-            {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b64}},
+            {"type": "image_url", "image_url": {"url": "data:" + _mimetype(image_path) + ";base64," + b64}},
         ],
     }]
     try:
