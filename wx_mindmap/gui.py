@@ -42,6 +42,7 @@ class WeChatSummaryApp:
         self.busy = False
 
         self._build_ui()
+        self._load_config()  # 启动时载入上次记住的设置（含 API key）
 
     def _build_ui(self):
         pad = {"padx": 14, "pady": 8}
@@ -261,6 +262,8 @@ class WeChatSummaryApp:
                 vision_model=self.vision_model_var.get().strip() or "",
                 user_hint=self.user_hint_var.get().strip(),
             )
+            # 生成成功后记住当前设置（含 API key），下次打开自动填回
+            self._save_config()
             self.root.after(0, lambda: self._done(res))
         except Exception as e:
             self.root.after(0, lambda: self._fail(e))
@@ -296,6 +299,59 @@ class WeChatSummaryApp:
                         reason=reason or "",
                         group_type=group, version="0.2.0")
         self.status.set("已记录你的反馈，谢谢你让工具更好用 🙏")
+
+    def _load_config(self):
+        """启动时载入上次记住的设置（含 API key）。"""
+        try:
+            from .config import load as _cload
+            c = _cload()
+            if c.get("provider") and hasattr(self, "provider_var"):
+                self.provider_var.set(c["provider"])
+                self._on_provider_changed()  # 触发 base/model 联动
+            if c.get("base_url") and hasattr(self, "base_var"):
+                self.base_var.set(c["base_url"])
+            if c.get("model") and hasattr(self, "model_var"):
+                self.model_var.set(c["model"])
+            if c.get("api_key") and hasattr(self, "key_var"):
+                self.key_var.set(c["api_key"])
+            if c.get("theme") and hasattr(self, "theme"):
+                self.theme.set(c["theme"])
+            if c.get("user_hint") and hasattr(self, "user_hint_var"):
+                self.user_hint_var.set(c["user_hint"])
+            if c.get("compress") and hasattr(self, "compress_on"):
+                self.compress_on.set(bool(c["compress"]))
+            # 视觉
+            if c.get("vision_provider") and hasattr(self, "vision_provider_var"):
+                self.vision_provider_var.set(c["vision_provider"])
+                self._on_vision_changed()
+            if c.get("vision_base") and hasattr(self, "vision_base_var"):
+                self.vision_base_var.set(c["vision_base"])
+            if c.get("vision_model") and hasattr(self, "vision_model_var"):
+                self.vision_model_var.set(c["vision_model"])
+            if c.get("vision_key") and hasattr(self, "vision_key_var"):
+                self.vision_key_var.set(c["vision_key"])
+        except Exception:
+            pass
+
+    def _save_config(self):
+        """保存当前设置（含 API key）到本地文件，下次打开自动载入。"""
+        try:
+            from .config import save as _csave
+            vals = {}
+            if hasattr(self, "provider_var"): vals["provider"] = self.provider_var.get()
+            if hasattr(self, "base_var"): vals["base_url"] = self.base_var.get().strip()
+            if hasattr(self, "model_var"): vals["model"] = self.model_var.get().strip()
+            if hasattr(self, "key_var"): vals["api_key"] = self.key_var.get().strip()
+            if hasattr(self, "theme"): vals["theme"] = self.theme.get()
+            if hasattr(self, "user_hint_var"): vals["user_hint"] = self.user_hint_var.get().strip()
+            if hasattr(self, "compress_on"): vals["compress"] = self.compress_on.get()
+            if hasattr(self, "vision_provider_var"): vals["vision_provider"] = self.vision_provider_var.get()
+            if hasattr(self, "vision_base_var"): vals["vision_base"] = self.vision_base_var.get().strip()
+            if hasattr(self, "vision_model_var"): vals["vision_model"] = self.vision_model_var.get().strip()
+            if hasattr(self, "vision_key_var"): vals["vision_key"] = self.vision_key_var.get().strip()
+            _csave(vals)
+        except Exception:
+            pass
 
     def _fail(self, e):
         self.busy = False
