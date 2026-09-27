@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#7c4dff"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景圆 -->
+  <circle cx="300" cy="300" r="270" fill="#0a0e1a"/>
+  <circle cx="300" cy="300" r="262" fill="none" stroke="#7c4dff" stroke-opacity="0.35" stroke-width="3"/>
+
+  <!-- 散乱信息点 (左:杂乱) -->
+  <g fill="#8b93b8">
+    <circle cx="95" cy="120" r="7"/>
+    <circle cx="140" cy="150" r="5"/>
+    <circle cx="80" cy="185" r="6"/>
+    <circle cx="120" cy="85" r="5"/>
+    <circle cx="165" cy="105" r="9"/>
+    <circle cx="70" cy="230" r="4"/>
+    <circle cx="150" cy="190" r="6"/>
+    <circle cx="105" cy="235" r="7"/>
+  </g>
+
+  <!-- 乱点汇入主干 (左下方开始收束) -->
+  <path d="M 110 245 C 170 240, 220 260, 258 300" stroke="#a78bfa" stroke-width="4" fill="none" stroke-dasharray="7 6"/>
+  <path d="M 120 250 C 175 265, 220 288, 250 305" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="7 6" opacity="0.7"/>
+
+  <!-- 主干: 向上生长 -->
+  <path d="M 258 300 C 290 250, 300 200, 300 130" stroke="url(#g1)" stroke-width="10" stroke-linecap="round" fill="none"/>
+
+  <!-- 放射思维导图枝干 (从主干顶点/中部分叉) -->
+  <g stroke="url(#g1)" stroke-width="6" stroke-linecap="round" fill="none">
+    <path d="M 270 215 C 220 170, 175 150, 130 140"/>
+    <path d="M 288 185 C 260 130, 240 105, 215 85"/>
+    <path d="M 300 150 C 320 105, 350 85, 395 60"/>
+    <path d="M 312 205 C 350 165, 390 155, 440 150"/>
+    <path d="M 330 245 C 375 240, 410 250, 455 260"/>
+    <path d="M 285 250 C 250 290, 220 330, 200 370"/>
+    <path d="M 312 270 C 345 310, 380 335, 415 355"/>
+  </g>
+
+  <!-- 叶/关键点 (各枝末梢) -->
+  <g fill="#22d3ee">
+    <circle cx="130" cy="140" r="10"/>
+    <circle cx="215" cy="85" r="10"/>
+    <circle cx="395" cy="60" r="10"/>
+    <circle cx="440" cy="150" r="10"/>
+    <circle cx="455" cy="260" r="10"/>
+    <circle cx="200" cy="370" r="10"/>
+    <circle cx="415" cy="355" r="10"/>
+  </g>
+  <!-- 高亮黄点(关键内容) -->
+  <g fill="url(#g2)">
+    <circle cx="130" cy="140" r="4"/>
+    <circle cx="395" cy="60" r="4"/>
+    <circle cx="455" cy="260" r="4"/>
+    <circle cx="200" cy="370" r="4"/>
+  </g>
+
+  <!-- 顶部 AI 闪电 (在主干顶点) -->
+  <path d="M 300 60 l 14 30 h -9 l 11 28 h -22 l -9 -20 h 8 z" fill="url(#g2)" stroke="#f59e0b" stroke-width="2" transform="translate(0,45)"/>
+
+  <!-- 底部 "汇聚成图" 弧线收拢 -->
+  <path d="M 120 505 C 200 540, 400 540, 480 505" stroke="url(#g1)" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <text x="300" y="300" text-anchor="middle"></text>
+</svg>

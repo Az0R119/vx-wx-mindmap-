@@ -77,25 +77,41 @@ export default {
   },
 };
 
-// 把反馈汇总成"社区改进点"字符串（可直接塞进 prompt）
+// 改进点关键词桶：把各种说法归到同一个"改进指令"上。
+// 顺序敏感：先匹配更具体的。命中就停。
+const BUCKETS = [
+  ["板块太多太杂", /(板块|栏目).*(多|杂|乱|精简)|太多板块/],
+  ["要点太长", /(太长|啰嗦|冗长|废话|精简|简短|简短点|别写那么长)/],
+  ["标签/重要度没用", /(标签|重要度|颜色|红|橙|蓝|标记)/],
+  ["内容不准确/编造", /(编造|瞎说|不准|错了|幻觉|不对|误)/],
+  ["缺重点/没抓住关键", /(没抓住|漏|重点|关键)/],
+  ["词云/排版问题", /(词云|排版|乱糟糟|丑陋|难看|样式)/],
+  ["项目识别缺失", /(项目|工具|作品).*(缺|漏|没找|没识)/],
+  ["速度慢/卡", /(慢|卡|转圈|超时)/],
+];
+
+function bucketOf(reason) {
+  const s = String(reason || "");
+  for (const [name, re] of BUCKETS) if (re.test(s)) return name;
+  return null; // 归不进桶的丢弃——宁可少，不要一堆同义噪音
+}
+
+// 把反馈汇总成"社区改进点"（可直接塞进 prompt）
 function summarize(records) {
   const total = records.length;
   const likes = records.filter(r => r.mood === "like").length;
   const dislikes = records.filter(r => r.mood === "dislike").length;
 
-  // 收集不喜欢的原因（改进点）
-  const reasons = {};
+  const counts = {}, examples = {};
   for (const r of records) {
-    if (r.mood === "dislike" && r.reason) {
-      const k = r.reason.slice(0, 20);
-      reasons[k] = (reasons[k] || 0) + 1;
-      // 保留最长的原始文本作示例
-      if (!reasons["__ex__" + k] || r.reason.length > reasons["__ex__" + k].length) {
-        reasons["__ex__" + k] = r.reason;
-      }
-    }
+    if (r.mood !== "dislike" || !r.reason) continue;
+    const k = bucketOf(r.reason);
+    if (!k) continue;
+    counts[k] = (counts[k] || 0) + 1;
+    // 留最长的原文当示例（信息量最大）
+    if (!examples[k] || r.reason.length > examples[k].length) examples[k] = r.reason;
   }
-  // 最常见的群类型
+
   const types = {};
   for (const r of records) if (r.groupType) types[r.groupType] = (types[r.groupType] || 0) + 1;
   const topTypes = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]);
@@ -105,10 +121,9 @@ function summarize(records) {
     likes,
     dislikes,
     topGroupTypes: topTypes,
-    improvementPoints: Object.entries(reasons)
-      .filter(([k]) => !k.startsWith("__ex__"))
+    improvementPoints: Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
-      .map(([k, n]) => ({ keyword: k, count: n, example: reasons["__ex__" + k] || "" })),
+      .map(([keyword, count]) => ({ keyword, count, example: examples[keyword] || "" })),
   };
 }

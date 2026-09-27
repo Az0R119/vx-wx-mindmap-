@@ -166,12 +166,12 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
             from .ai import ai_generate_structure, generate_section_plan
             tr = transcripts(chat)
             user_hint = (opts.get("user_hint") or "").strip()
-            # 社区/个人改进提示：L2 个人偏好 + 社区反馈改进点（一个反馈惠及所有人）
+            # 社区改进点 / 个人偏好：各自独立成段注入（混进 user_hint 会被 AI 当成"群类型"读）
+            community_hint, personal_hint = "", ""
             try:
-                from .feedback import build_community_hint
-                _cm = build_community_hint()
-                if _cm:
-                    user_hint = (user_hint + "；" + _cm).strip("；")
+                from .feedback import build_community_hint, build_personal_hint
+                community_hint = build_community_hint()
+                personal_hint = build_personal_hint()
             except Exception:
                 pass
             # Step1：让 AI 先判定这个群该有哪些板块（专属板块方案；家庭群出家庭板块，不再硬编码 IT）
@@ -185,7 +185,9 @@ def run_summary(zip_path: str, out_html: Optional[str] = None,
             # Step2/3：板块方案 + 用户输入 + 原风格注入，正式出图
             ai_struct = ai_generate_structure(tr, api_key, base=api_base, model=model,
                                               known_projects=opts.get("projects"),
-                                              user_hint=user_hint, section_plan=plan)
+                                              user_hint=user_hint, section_plan=plan,
+                                              community_hint=community_hint,
+                                              personal_hint=personal_hint)
             if ai_struct and ai_struct.get("sections"):
                 warnings.append(f"✅ AI 版：AI 生成 {len(ai_struct['sections'])} 个板块"
                                 + (f"（群类型：{plan.get('群类型','')}）" if plan and plan.get("群类型") else ""))

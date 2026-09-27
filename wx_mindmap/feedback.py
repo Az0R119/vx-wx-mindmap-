@@ -119,12 +119,14 @@ def fetch_improvements(backend: str = BACKEND_URL, timeout: float = 10.0) -> Lis
 
 
 def build_community_hint(backend: str = BACKEND_URL) -> str:
-    """把社区改进点 + 个人偏好拼成语气可读的提示，供注入 prompt。"""
-    parts = []
-    personal = get_personal_hint()
-    if personal:
-        parts.append(personal)
-    community = fetch_improvements(backend)
-    if community:
-        parts.append("社区用户普遍偏好改进：" + "、".join(community))
-    return "；".join(parts)
+    """拉社区改进点，转成祈使句清单（只含社区，不含个人偏好）。
+    用途见 fetch_improvements 注释：单独一段注入，不能混进 user_hint。"""
+    pts = fetch_improvements(backend)
+    if not pts:
+        return ""
+    return "；".join(pts)
+
+
+def build_personal_hint() -> str:
+    """个人偏好（L2 本机记忆），单独一段注入。"""
+    return get_personal_hint()

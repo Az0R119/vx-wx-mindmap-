@@ -274,11 +274,14 @@ def generate_section_plan(transcript: List[str], api_key: str,
 def ai_generate_structure(transcript: List[str], api_key: str,
                           base: str = DEFAULT_BASE, model: str = DEFAULT_MODEL,
                           known_projects: List[Dict] = None,
-                          user_hint: str = "", section_plan: Dict = None) -> Dict:
+                          user_hint: str = "", section_plan: Dict = None,
+                          community_hint: str = "", personal_hint: str = "") -> Dict:
     """
     AI 版核心：让 AI 读消息，返回一份完整的板块结构。
     known_projects：免费版规则抓到的项目/工具，AI 必须全部列入项目板块（取长补短不遗漏）。
     user_hint：可选，用户在 GUI 填的"群类型/关注点"。
+    community_hint：社区反馈汇总的改进点（祈使句清单），独立一段注入；不混进 user_hint。
+    personal_hint：本机记住的个人偏好，独立一段注入。
     section_plan：可选，Step1 generate_section_plan() 返回的专属板块方案；若不传则回退到默认逻辑。
     返回 { "title", "sections", "projects" }；任何失败返回 {}（上层降级免费版，不崩）。
     """
@@ -326,9 +329,21 @@ def ai_generate_structure(transcript: List[str], api_key: str,
     if user_hint:
         user_hint_block = f"用户提示：这是【{user_hint}】。板块方案请优先贴合这个方向。\n\n"
 
+    # 个人偏好：本机上一位用户/上次的偏好（弱提示）
+    personal_block = f"本机历史偏好：{personal_hint}\n\n" if personal_hint else ""
+
+    # 社区改进点：独立成段 + 祈使句，明确标"必须遵守"，避免被当成群类型
+    community_block = (
+        "【社区反馈·必须遵守】以下是其他用户对同类总结的抱怨，本次生成务必避免：\n"
+        + "\n".join("· " + p for p in community_hint.split("；") if p.strip())
+        + "\n\n"
+    ) if community_hint else ""
+
     prompt = (
         "以下是某微信群的聊天记录。请按给定风格产出思维导图内容。\n"
         + user_hint_block
+        + personal_block
+        + community_block
         + AI_PAGE_STYLE.replace("{SECTION_PLAN}", section_plan_block) + "\n\n"
         "严格返回 JSON，结构如下（不要多余文字）：\n"
         + schema_example + "\n"
